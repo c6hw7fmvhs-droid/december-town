@@ -15,7 +15,10 @@
           <span class="brand-name">DECEMBER <b>TOWN</b></span>
         </a>
         <div class="user-tools">
-          <div class="profile"><span class="avatar">❄</span><span class="nickname">Snowy</span></div>
+          <button class="profile" id="characterStudioOpen" aria-label="CHARACTER STUDIO 열기">
+            <span class="avatar" id="profileAvatar" aria-hidden="true"></span>
+            <span class="nickname">Snowy</span><span class="profile-edit" aria-hidden="true">✎</span>
+          </button>
           <div class="currency" aria-label="보유 별사탕 120개"><span aria-hidden="true">✦</span><b>120</b></div>
           <button class="icon-button notification" aria-label="알림"><span aria-hidden="true">♧</span><i></i></button>
         </div>
@@ -32,10 +35,7 @@
             <button class="hotspot town-square" data-place="town-square" aria-label="크리스마스 트리 꾸미기"></button>
           </div>
           <div class="character-layer" id="characterLayer" aria-hidden="true">
-            <div class="pixel-person" id="pixelPerson">
-              <span class="pixel-hat"></span><span class="pixel-face"></span><span class="pixel-coat"></span>
-              <span class="pixel-scarf"></span><span class="pixel-arm"></span><span class="pixel-legs"></span>
-            </div>
+            <div class="pixel-person" id="pixelPerson" data-state="IDLE" data-direction="right" aria-label="마을을 걷는 캐릭터"></div>
           </div>
           <div class="location-hint" id="locationHint" aria-live="polite">마을을 둘러보세요 <span>✦</span></div>
         </div>
@@ -57,6 +57,38 @@
       <p class="dialog-copy">이 공간은 준비 중이에요.<br />조금만 기다려 주세요!</p>
       <button class="dialog-ok" id="dialogOk">마을로 돌아가기</button>
     </dialog>
+    <dialog class="studio-dialog" id="characterStudio" aria-labelledby="studioTitle">
+      <div class="studio-shell">
+        <aside class="studio-preview-panel">
+          <div class="studio-brand"><span>✦</span> DECEMBER TOWN</div>
+          <button class="studio-close" id="studioClose" aria-label="캐릭터 스튜디오 닫기">×</button>
+          <p class="studio-kicker">YOUR LITTLE WINTER SELF</p>
+          <h1 id="studioTitle">CHARACTER<br />STUDIO</h1>
+          <div class="studio-preview-scene">
+            <span class="preview-snow snow-one">✦</span><span class="preview-snow snow-two">✧</span>
+            <div class="studio-character" id="studioCharacterPreview" aria-label="캐릭터 미리보기"></div>
+            <span class="preview-snow snow-three">✦</span>
+          </div>
+          <div class="preview-name">SNOWY <span>✦</span></div>
+          <p class="preview-caption">A tiny friend for a snowy day</p>
+        </aside>
+        <section class="studio-controls" aria-label="캐릭터 외형 선택">
+          <div class="studio-controls-head">
+            <div><p class="studio-kicker">MAKE IT YOURS</p><h2>나만의 미니미 만들기</h2></div>
+            <span class="studio-sparkle" aria-hidden="true">✧</span>
+          </div>
+          <div class="customizer-groups" id="customizerGroups"></div>
+          <div class="studio-actions">
+            <button class="studio-action random-action" id="randomCharacter"><span>✧</span> 랜덤 생성</button>
+            <button class="studio-action reset-action" id="resetCharacter">초기화</button>
+            <button class="studio-action save-action" id="saveCharacter">저장하기 <span>♡</span></button>
+          </div>
+          <p class="studio-save-note" id="studioSaveNote" aria-live="polite">저장하면 마을과 프로필에 적용돼요.</p>
+        </section>
+      </div>
+    </dialog>
+    <script src="./src/data/character-items.js"></script>
+    <script src="./src/data/character-art.js"></script>
     <script src="./src/main.js"></script>
   </body>
 </html>
