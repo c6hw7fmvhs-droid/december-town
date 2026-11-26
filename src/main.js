@@ -3,6 +3,11 @@ const person = document.querySelector('#pixelPerson');
 const hint = document.querySelector('#locationHint');
 const dialog = document.querySelector('#placeDialog');
 const dialogTitle = document.querySelector('#dialogTitle');
+const characterStudio = document.querySelector('#characterStudio');
+const previewTarget = document.querySelector('#studioCharacterPreview');
+const profileAvatar = document.querySelector('#profileAvatar');
+const customizerGroups = document.querySelector('#customizerGroups');
+const saveNote = document.querySelector('#studioSaveNote');
 
 // Waypoints are normalized to the 1536 × 1024 background; adjust these independently of layout.
 const route = [
@@ -22,6 +27,145 @@ function setCharacter(x, y, facing = 1) {
   person.style.left = `${x}%`;
   person.style.top = `${y}%`;
   person.style.transform = `translate(-50%, -50%) scaleX(${facing})`;
+  person.dataset.direction = facing < 0 ? 'left' : 'right';
+}
+
+const DEFAULT_CHARACTER = {
+  face: 'warm', hair: 'soft-bob', hairColor: 'chestnut',
+  top: 'berry-coat', bottom: 'snow-skirt', shoes: 'winter-boots', accessory: 'snowflake-clip'
+};
+const STORAGE_KEY = 'decemberTown.character:local';
+let draftCharacter = readSavedCharacter();
+let savedCharacter = { ...draftCharacter };
+
+function normalizeCharacter(candidate) {
+  const clean = {};
+  Object.entries(DEFAULT_CHARACTER).forEach(([category, fallback]) => {
+    const available = window.CHARACTER_ITEMS[category].some(item => item.id === candidate?.[category]);
+    clean[category] = available ? candidate[category] : fallback;
+  });
+  return clean;
+}
+
+function readSavedCharacter() {
+  try {
+    return normalizeCharacter(JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || DEFAULT_CHARACTER);
+  } catch {
+    return { ...DEFAULT_CHARACTER };
+  }
+}
+
+function createPartImage(part, className, alt = '') {
+  const image = document.createElement('img');
+  image.className = `sprite-part ${className}`;
+  image.src = part.src;
+  image.alt = alt;
+  image.draggable = false;
+  return image;
+}
+
+function drawCharacter(target, character, compact = false) {
+  const chosen = normalizeCharacter(character);
+  const items = window.CHARACTER_ITEMS;
+  const art = window.CHARACTER_ART;
+  const sprite = document.createElement('div');
+  sprite.className = `character-sprite${compact ? ' compact-sprite' : ''}`;
+  sprite.setAttribute('aria-hidden', 'true');
+
+  const shoes = items.shoes.find(item => item.id === chosen.shoes);
+  const bottom = items.bottom.find(item => item.id === chosen.bottom);
+  const top = items.top.find(item => item.id === chosen.top);
+  const hair = items.hair.find(item => item.id === chosen.hair);
+  const face = items.face.find(item => item.id === chosen.face);
+  const accessory = items.accessory.find(item => item.id === chosen.accessory);
+  const hairColor = items.hairColor.find(item => item.id === chosen.hairColor);
+
+  sprite.append(createPartImage(art.shoes[shoes.id], 'shoes-part'));
+  sprite.append(createPartImage(art.bottom[bottom.id], 'bottom-part'));
+  sprite.append(createPartImage(art.top[top.id], 'top-part'));
+
+  const hairPart = document.createElement('div');
+  hairPart.className = 'sprite-part hair-part';
+  hairPart.style.setProperty('--hair-mask', `url("${art.hair[hair.id].src}")`);
+  hairPart.style.setProperty('--hair-color', hairColor.value);
+  sprite.append(hairPart);
+
+  sprite.append(createPartImage(art.face[face.id], 'face-part'));
+  sprite.append(createPartImage(art.accessory[accessory.id], 'accessory-part'));
+  target.replaceChildren(sprite);
+}
+
+function renderChoices() {
+  customizerGroups.replaceChildren();
+  const categoryLabels = {
+    face: '얼굴', hair: '헤어스타일', hairColor: '머리색', top: '상의',
+    bottom: '하의', shoes: '신발', accessory: '액세서리'
+  };
+  Object.entries(categoryLabels).forEach(([category, label]) => {
+    const group = document.createElement('section');
+    group.className = 'choice-group';
+    group.dataset.category = category;
+    const heading = document.createElement('h3');
+    heading.textContent = label;
+    const options = document.createElement('div');
+    options.className = `choice-options ${category === 'hairColor' ? 'color-options' : ''}`;
+    window.CHARACTER_ITEMS[category].forEach(item => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'choice-option';
+      option.dataset.category = category;
+      option.dataset.value = item.id;
+      option.setAttribute('aria-pressed', String(draftCharacter[category] === item.id));
+      option.setAttribute('aria-label', `${label}: ${item.label}`);
+      if (category === 'hairColor') {
+        option.classList.add('color-choice');
+        option.style.setProperty('--choice-color', item.value);
+        option.innerHTML = `<span class="color-swatch"></span><span>${item.label}</span>`;
+      } else {
+        option.innerHTML = `<span class="choice-glyph" aria-hidden="true">${item.icon}</span><span>${item.label}</span>`;
+      }
+      option.addEventListener('click', () => {
+        draftCharacter[category] = item.id;
+        updateStudio();
+      });
+      options.append(option);
+    });
+    group.append(heading, options);
+    customizerGroups.append(group);
+  });
+}
+
+function updateStudio() {
+  drawCharacter(previewTarget, draftCharacter);
+  customizerGroups.querySelectorAll('.choice-option').forEach(option => {
+    option.setAttribute('aria-pressed', String(draftCharacter[option.dataset.category] === option.dataset.value));
+  });
+  saveNote.textContent = '저장하면 마을과 프로필에 적용돼요.';
+  saveNote.classList.remove('saved');
+}
+
+function openStudio() {
+  draftCharacter = { ...savedCharacter };
+  updateStudio();
+  characterStudio.showModal();
+}
+
+function randomizeCharacter() {
+  Object.keys(DEFAULT_CHARACTER).forEach(category => {
+    const choices = window.CHARACTER_ITEMS[category];
+    draftCharacter[category] = choices[Math.floor(Math.random() * choices.length)].id;
+  });
+  updateStudio();
+}
+
+function saveCharacter() {
+  savedCharacter = normalizeCharacter(draftCharacter);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(savedCharacter));
+  drawCharacter(person, savedCharacter);
+  drawCharacter(profileAvatar, savedCharacter, true);
+  saveNote.textContent = '저장했어요! 마을과 프로필에 적용됐어요.';
+  saveNote.classList.add('saved');
+  window.setTimeout(() => characterStudio.close(), 600);
 }
 
 function pause(ms) { return new Promise(resolve => window.setTimeout(resolve, ms)); }
@@ -64,6 +208,17 @@ document.querySelectorAll('.hotspot').forEach(button => {
     dialog.showModal();
   });
 });
+document.querySelector('#characterStudioOpen').addEventListener('click', openStudio);
+document.querySelector('#studioClose').addEventListener('click', () => characterStudio.close());
+document.querySelector('#randomCharacter').addEventListener('click', randomizeCharacter);
+document.querySelector('#resetCharacter').addEventListener('click', () => {
+  draftCharacter = { ...DEFAULT_CHARACTER };
+  updateStudio();
+});
+document.querySelector('#saveCharacter').addEventListener('click', saveCharacter);
+characterStudio.addEventListener('click', event => {
+  if (event.target === characterStudio) characterStudio.close();
+});
 document.querySelector('#dialogClose').addEventListener('click', () => dialog.close());
 document.querySelector('#dialogOk').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
@@ -92,4 +247,8 @@ background.addEventListener('load', () => {
   stage.style.setProperty('--source-height', background.naturalHeight);
 }, { once: true });
 setCharacter(route[0].x, route[0].y);
+renderChoices();
+drawCharacter(previewTarget, draftCharacter);
+drawCharacter(person, savedCharacter);
+drawCharacter(profileAvatar, savedCharacter, true);
 wander();
